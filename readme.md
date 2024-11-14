@@ -141,10 +141,3 @@ This command runs the **Python** script with the `--show-vms` argument using the
    Ensure that the correct **username** and **password** are provided, and these values match those required by the VMware Workstation REST API.
 
 ---
-
-## License
-
-This project is licensed under the MIT License.
-```
-
----
