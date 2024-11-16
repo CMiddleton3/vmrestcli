@@ -11,6 +11,7 @@ The tool works both in **menu-driven** mode and through **command-line arguments
 - Power on or off VMs by providing the VM ID.
 - View all network configurations from the VMware REST API.
 - Start the VMware Workstation REST server (`vmrest`).
+- Stop the VMware Workstation REST server (`vmrest`).
 - Configure your `vmworkstation.ini` file interactively.
 - Argument-based flags to run tasks automatically without interactive prompts.
 
@@ -92,8 +93,13 @@ You can either run the tool as an interactive CLI menu or provide arguments at t
    ```bash
    python3 vmrest.py --start-server
    ```
+8. **Stop VMware Workstation REST API Server:**
+   If you need to stop the `vmrest` server:
+   ```bash
+   python3 vmrest.py --stop-server
+   ```
 
-8. **Configure vmworkstation.ini:**
+9. **Configure vmworkstation.ini:**
    ```bash
    python3 vmrest.py --configure
    ```
@@ -114,6 +120,7 @@ The menu provides options such as:
 - Show power state of a specific VM.
 - Power on/off a VM.
 - Start the VMware REST server.
+- Stop the VMware REST server.
 - Quit
 
 ---

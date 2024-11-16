@@ -63,7 +63,14 @@ USAGE EXAMPLES:
    python3 vmrest.py --start-server
    ```
 
-8. **Configure vmworkstation.ini:**
+7. **Stop the VMware Workstation REST server:**
+   You can stop the VMware `vmrest` API server via the CLI. The path to the `vmrest` executable needs to be set in the `vmworkstation.ini`.
+
+   ```
+   python3 vmrest.py --start-server
+   ```
+
+9. **Configure vmworkstation.ini:**
    If configuration is needed (such as setting up a new base URL or path to `vmrest`, run the following command, and it will guide you through the process of configuring the `.ini` file:
 
    ```

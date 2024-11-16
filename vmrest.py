@@ -4,6 +4,10 @@ import configparser
 import argparse
 import subprocess
 import sys
+import os
+import time
+import psutil
+
 
 # Load settings from vmworkstation.ini
 config = configparser.ConfigParser()
@@ -48,18 +52,60 @@ def configure_vmworkstation_ini():
     
     print("Configuration updated successfully.")
 
-def start_server():
+def start_server():    
     try:
         print(f"Starting VMware WorkStation REST server: {VMWARE_REST_EXE}")
-        subprocess.Popen([VMWARE_REST_EXE]) 
-    except FileNotFoundError as e:
+        
+        # Start the process in the background
+        process = subprocess.Popen(
+            [VMWARE_REST_EXE],
+            stdout=subprocess.DEVNULL,  # Suppress standard output
+            stderr=subprocess.DEVNULL,  # Suppress error output
+            preexec_fn=os.setpgrp  # Detach from the controlling terminal
+        )
+        
+        # Wait a few seconds for the server to start
+        time.sleep(3)
+        
+        # Test if the server is reachable
+        try:
+            response = requests.get(BASE_URL, timeout=5)
+            if response.status_code == 200:
+                print("VMware Workstation REST server started successfully.")
+            else:
+                print(f"Warning: REST server responded with status code {response.status_code}.")
+        except requests.exceptions.ConnectionError:
+            print("Error: Could not connect to VMware Workstation REST server.")
+            process.terminate()  # Stop the process if the server is unreachable
+            sys.exit(1)
+    
+    except FileNotFoundError:
         print(f"Error: VMware Workstation REST server executable not found at {VMWARE_REST_EXE}.")
         sys.exit(1)
+    except Exception as e:
+        print(f"Error: {e}")
+        sys.exit(1)
+
+def stop_server():
+    """Stops the VMware Workstation REST server."""
+    process_name = "vmrest.exe"
+    
+    print(f"Stopping VMware WorkStation REST server ({process_name})...")
     
     try:
-        requests.get(BASE_URL, timeout=5)
-    except requests.exceptions.ConnectionError:
-        print("Error: Could not connect to VMware workstation REST server.")
+        # Iterate over all running processes
+        for proc in psutil.process_iter(['pid', 'name']):
+            # Check if process name matches
+            if proc.info['name'] == process_name:
+                print(f"Found process {proc.info['name']} with PID {proc.info['pid']}. Terminating...")
+                proc.terminate()
+                proc.wait()  # Wait for process to terminate
+                print("Process terminated successfully.")
+                return
+        
+        print(f"No running process found for {process_name}.")
+    except Exception as e:
+        print(f"Error stopping server: {e}")
         sys.exit(1)
 
 def get_all_vms():
@@ -126,6 +172,29 @@ def show_all_vm_ids():
     for vm in vms:
         print(f"VM Path: {vm.get('path')}, VM ID: {vm.get('id')}")
 
+def get_all_networks():
+    network_url = f"{BASE_URL}/vmnet"
+    headers = {'Accept': 'application/vnd.vmware.vmw.rest-v1+json'}
+    try:
+        response = requests.get(network_url, headers=headers, auth=HTTPBasicAuth(USERNAME, PASSWORD))
+        response.raise_for_status()
+        return response.json().get("vmnets", [])
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching networks: {e}")
+        return []
+
+def display_networks(networks):
+    if not networks:
+        print("No networks available.")
+        return
+    
+    for i, net in enumerate(networks, start=1):
+        print(f"\n{i}. Network Name: {net.get('name', 'Unknown')}")
+        print(f"   Type: {net.get('type', 'Unknown')}")
+        print(f"   DHCP: {net.get('dhcp', 'Unknown')}")
+        print(f"   Subnet: {net.get('subnet', 'Unknown')}")
+        print(f"   Mask: {net.get('mask', 'Unknown')}")
+
 def menu():
     while True:
         print("\nMenu:")
@@ -136,6 +205,7 @@ def menu():
         print("5. Power Off VM by ID")
         print("6. Show All Networks")
         print("7. Start VMware REST Server")
+        print("8. Stop VMware REST Server")
         print("q. Quit")
 
         choice = input("Enter your choice: ").strip().lower()
@@ -170,6 +240,9 @@ def menu():
         elif choice == "7":
             start_server()
         
+        elif choice == "8":
+            stop_server()
+        
         elif choice in ["q", "Q"]:
             print("Exiting program.")
             break
@@ -187,6 +260,7 @@ def main():
     parser.add_argument('--power-off', type=str, metavar='VM_ID', help='Power off the VM (requires VM_ID)')
     parser.add_argument('--show-net', action='store_true', help='Show all networks and quit')
     parser.add_argument('--start-server', action='store_true', help='Start the VMware REST server')
+    parser.add_argument('--stop-server', action='store_true', help='Stop the VMware REST server')
     parser.add_argument('--configure', action='store_true', help='Configure vmworkstation.ini file')
 
     args = parser.parse_args()
@@ -199,6 +273,9 @@ def main():
 
     if args.start_server:
         start_server()
+    
+    if args.stop_server:
+        stop_server()
 
     if args.show_vms:
         vms = get_all_vms()
@@ -228,29 +305,6 @@ def main():
         sys.exit(0)
 
     menu()
-
-def get_all_networks():
-    network_url = f"{BASE_URL}/vmnet"
-    headers = {'Accept': 'application/vnd.vmware.vmw.rest-v1+json'}
-    try:
-        response = requests.get(network_url, headers=headers, auth=HTTPBasicAuth(USERNAME, PASSWORD))
-        response.raise_for_status()
-        return response.json().get("vmnets", [])
-    except requests.exceptions.RequestException as e:
-        print(f"Error fetching networks: {e}")
-        return []
-
-def display_networks(networks):
-    if not networks:
-        print("No networks available.")
-        return
-    
-    for i, net in enumerate(networks, start=1):
-        print(f"\n{i}. Network Name: {net.get('name', 'Unknown')}")
-        print(f"   Type: {net.get('type', 'Unknown')}")
-        print(f"   DHCP: {net.get('dhcp', 'Unknown')}")
-        print(f"   Subnet: {net.get('subnet', 'Unknown')}")
-        print(f"   Mask: {net.get('mask', 'Unknown')}")
 
 if __name__ == "__main__":
     main()
