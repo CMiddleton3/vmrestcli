@@ -14,7 +14,7 @@ config = configparser.ConfigParser()
 config.read('vmworkstation.ini')
 
 # Set defaults if not provided in the ini file.
-BASE_URL = config.get('vmware', 'base_url', fallback='http://127.0.0.1:8697/api')
+BASE_URL = config.get('vmware', 'base_url', fallback='http://127.0.0.1:8697')
 USERNAME = config.get('vmware', 'username', fallback='')
 PASSWORD = config.get('vmware', 'password', fallback='')
 VMWARE_REST_EXE = config.get('vmware', 'vmrest_exe', fallback=r'/mnt/c/Program Files (x86)/VMware/VMware Workstation/vmrest.exe')
@@ -29,7 +29,7 @@ def configure_vmworkstation_ini():
     print("Configure vmworkstation.ini file:")
     config['vmware'] = {}
     
-    default_base_url = 'http://127.0.0.1:8697/api'
+    default_base_url = 'http://127.0.0.1:8697'
     base_url = input(f"Enter base URL (Default: {default_base_url}): ").strip() or default_base_url
     config['vmware']['base_url'] = base_url
 
@@ -65,7 +65,7 @@ def start_server():
         )
         
         # Wait a few seconds for the server to start
-        time.sleep(3)
+        time.sleep(6)
         
         # Test if the server is reachable
         try:
@@ -111,12 +111,53 @@ def stop_server():
 def get_all_vms():
     headers = {'Accept': 'application/vnd.vmware.vmw.rest-v1+json'}
     try:
-        response = requests.get(BASE_URL+"/vms", headers=headers, auth=HTTPBasicAuth(USERNAME, PASSWORD))
+        response = requests.get(BASE_URL+"/api/vms", headers=headers, auth=HTTPBasicAuth(USERNAME, PASSWORD))
         response.raise_for_status()
         return response.json() 
     except requests.exceptions.RequestException as e:
         print(f"Error fetching VMs: {e}")
         return []
+
+def get_vm_ip(vm_id):
+    # Get IP Address
+    ip_url = f"{BASE_URL}/api/vms/{vm_id}/ip"
+    headers = {'Accept': 'application/vnd.vmware.vmw.rest-v1+json'}
+    try:
+        ip_response = requests.get(ip_url, headers=headers, auth=HTTPBasicAuth(USERNAME, PASSWORD))
+        ip_response.raise_for_status()
+        ip_address = ip_response.json().get("ip", "Unknown")
+        print(f"   IP Address: {ip_address}")
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching IP address for VM {vm_id}: {e}")
+
+def get_vm_mac(vm_id):
+    # Get MAC Address
+    nic_url = f"{BASE_URL}/api/vms/{vm_id}/nic"
+    headers = {'Accept': 'application/vnd.vmware.vmw.rest-v1+json'}
+    try:
+        nic_response = requests.get(nic_url, headers=headers, auth=HTTPBasicAuth(USERNAME, PASSWORD))
+        nic_response.raise_for_status()
+        nics = nic_response.json().get("nics", [])
+        for nic in nics:
+            mac_address = nic.get("macAddress", "Unknown")
+            print(f"   MAC Address (NIC {nic.get('index', 'Unknown')}): {mac_address}")
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching MAC address for VM {vm_id}: {e}")
+
+def get_vm_setting(vm_id):
+    # Get Settings (CPU and Memory)
+    settings_url = f"{BASE_URL}/api/vms/{vm_id}"
+    headers = {'Accept': 'application/vnd.vmware.vmw.rest-v1+json'}
+    try:
+        settings_response = requests.get(settings_url, headers=headers, auth=HTTPBasicAuth(USERNAME, PASSWORD))
+        settings_response.raise_for_status()
+        settings = settings_response.json()
+        processors = settings.get("cpu", {}).get("processors", "Unknown")
+        memory = settings.get("memory", "Unknown")
+        print(f"   Processors: {processors}")
+        print(f"   Memory: {memory} MB")
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching settings for VM {vm_id}: {e}")
 
 def display_vms(vms):
     if not vms:
@@ -129,20 +170,20 @@ def display_vms(vms):
         print(f"\n{i}. VM Path: {vm_path}")
         print(f"   VM ID: {vm_id}")
         
-        power_url = f"{BASE_URL}/vms/{vm_id}/power"
-        try:
-            power_response = requests.get(power_url, headers={'Accept': 'application/vnd.vmware.vmw.rest-v1+json'}, auth=HTTPBasicAuth(USERNAME, PASSWORD))
-            power_response.raise_for_status()
-            power_state = power_response.json().get("power_state", "Unknown")
-        except requests.exceptions.RequestException as e:
-            print(f"Error fetching power state for VM {vm_id}: {e}")
-            power_state = "Error"
-
+        power_state = get_vm_power_state(vm_id)
         print(f"   Power State: {power_state}")
+
+        if power_state == "poweredOn":
+            get_vm_ip(vm_id)
+            get_vm_mac(vm_id)
+            get_vm_setting(vm_id)
+    
+    time.sleep(3)
+        
 
 def get_vm_power_state(vm_id):
     try:
-        power_url = f"{BASE_URL}/vms/{vm_id}/power"
+        power_url = f"{BASE_URL}/api/vms/{vm_id}/power"
         headers = {'Accept': 'application/vnd.vmware.vmw.rest-v1+json'}
         power_response = requests.get(power_url, headers=headers, auth=HTTPBasicAuth(USERNAME, PASSWORD))
         power_response.raise_for_status()
@@ -152,11 +193,8 @@ def get_vm_power_state(vm_id):
         return "Unknown"
 
 def power_on_off(vm_id, action):
-    url = f"{BASE_URL}/vms/{vm_id}/power"
-    headers = {
-        'Content-Type': 'application/vnd.vmware.vmw.rest-v1+json',
-        'Accept': 'application/vnd.vmware.vmw.rest-v1+json'
-    }
+    url = f"{BASE_URL}/api/vms/{vm_id}/power"
+    headers = {'Accept': 'application/vnd.vmware.vmw.rest-v1+json'}
     payload = action
 
     try:
@@ -171,9 +209,11 @@ def show_all_vm_ids():
     vms = get_all_vms()
     for vm in vms:
         print(f"VM Path: {vm.get('path')}, VM ID: {vm.get('id')}")
+    
+    time.sleep(3)
 
 def get_all_networks():
-    network_url = f"{BASE_URL}/vmnet"
+    network_url = f"{BASE_URL}/api/vmnet"
     headers = {'Accept': 'application/vnd.vmware.vmw.rest-v1+json'}
     try:
         response = requests.get(network_url, headers=headers, auth=HTTPBasicAuth(USERNAME, PASSWORD))
@@ -254,11 +294,11 @@ def main():
     parser = argparse.ArgumentParser(description='VMware Workstation REST Interface')
     
     parser.add_argument('--show-vms', action='store_true', help='Show all VMs and quit')
+    parser.add_argument('--show-net', action='store_true', help='Show all networks and quit')
     parser.add_argument('--show-vm-ids', action='store_true', help='Show all VM IDs and paths then quit')
     parser.add_argument('--show-power-state', type=str, metavar='VM_ID', help='Show the current power state of a VM (requires VM_ID)')
     parser.add_argument('--power-on', type=str, metavar='VM_ID', help='Power on the VM (requires VM_ID)')
     parser.add_argument('--power-off', type=str, metavar='VM_ID', help='Power off the VM (requires VM_ID)')
-    parser.add_argument('--show-net', action='store_true', help='Show all networks and quit')
     parser.add_argument('--start-server', action='store_true', help='Start the VMware REST server')
     parser.add_argument('--stop-server', action='store_true', help='Stop the VMware REST server')
     parser.add_argument('--configure', action='store_true', help='Configure vmworkstation.ini file')
@@ -273,9 +313,11 @@ def main():
 
     if args.start_server:
         start_server()
+        sys.exit(0)
     
     if args.stop_server:
         stop_server()
+        sys.exit(0)
 
     if args.show_vms:
         vms = get_all_vms()
