@@ -184,7 +184,7 @@ def display_vms(vms):
 def get_vm_power_state(vm_id):
     try:
         power_url = f"{BASE_URL}/api/vms/{vm_id}/power"
-        headers = {'Accept': 'application/vnd.vmware.vmw.rest-v1+json'}
+        headers = {'Accept': 'application/vnd.vmware.vmw.rest-v1+json','Content-Type': 'application/vnd.vmware.vmw.rest-v1+json'}
         power_response = requests.get(power_url, headers=headers, auth=HTTPBasicAuth(USERNAME, PASSWORD))
         power_response.raise_for_status()
         return power_response.json().get("power_state", "Unknown")
@@ -194,7 +194,7 @@ def get_vm_power_state(vm_id):
 
 def power_on_off(vm_id, action):
     url = f"{BASE_URL}/api/vms/{vm_id}/power"
-    headers = {'Accept': 'application/vnd.vmware.vmw.rest-v1+json'}
+    headers = {'Accept': 'application/vnd.vmware.vmw.rest-v1+json','Content-Type': 'application/vnd.vmware.vmw.rest-v1+json'}
     payload = action
 
     try:
