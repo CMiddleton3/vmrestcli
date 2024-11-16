@@ -7,7 +7,7 @@ import sys
 import os
 import time
 import psutil
-
+from pathlib import Path
 
 # Load settings from vmworkstation.ini
 config = configparser.ConfigParser()
@@ -65,7 +65,7 @@ def start_server():
         )
         
         # Wait a few seconds for the server to start
-        time.sleep(6)
+        time.sleep(3)
         
         # Test if the server is reachable
         try:
@@ -100,7 +100,15 @@ def stop_server():
                 print(f"Found process {proc.info['name']} with PID {proc.info['pid']}. Terminating...")
                 proc.terminate()
                 proc.wait()  # Wait for process to terminate
+                time.sleep(3)
                 print("Process terminated successfully.")
+                # Test if the server is reachable
+                try:
+                    response = requests.get(BASE_URL, timeout=5)
+                    if response.status_code == 200:
+                        print("ERROR VMware Workstation REST server still running.")
+                except requests.exceptions.ConnectionError:
+                    print("Successfully Stopped VMware Workstation REST server.")
                 return
         
         print(f"No running process found for {process_name}.")
@@ -117,6 +125,51 @@ def get_all_vms():
     except requests.exceptions.RequestException as e:
         print(f"Error fetching VMs: {e}")
         return []
+
+def show_all_vm_ids():
+    vms = get_all_vms()
+    print()
+    for vm in vms:
+        vm_name = get_vm_name_by_ids(vm.get('id'))
+        print(f"VM Name {vm_name} VM Path: {vm.get('path')}, VM ID: {vm.get('id')}")
+
+def get_vm_name_by_ids(vm_id):
+    vms = get_all_vms()
+    for vm in vms:
+        if vm.get('id') == vm_id:
+            # Extract the file name
+            vm_path = vm.get('path')
+            vm_path = vm_path.replace("\\", "/")
+            windows_path = Path(vm_path)
+            vm_name = windows_path.name
+
+            # Remove the hyphen and the '.vmx' extension
+            vm_name = vm_name.replace("-", " ").replace(".vmx", "").capitalize()
+
+            return vm_name
+
+def get_vm_info(vm_id):
+    config_param = [
+                    "guestOS", 
+                    "displayName",
+                    "workingDir",
+                    "guestInfo.detailed.data"]
+        
+        
+    
+    for param in config_param:
+        MAX_OUTPUT_LENGTH = 120
+        ip_url = f"{BASE_URL}/api/vms/{vm_id}/params/{param}"
+        headers = {'Accept': 'application/vnd.vmware.vmw.rest-v1+json'}
+        try:
+            param_response = requests.get(ip_url, headers=headers, auth=HTTPBasicAuth(USERNAME, PASSWORD))
+            param_response.raise_for_status()
+            param_results = param_response.json()
+            print(f"   {param.capitalize()} : {param_results.get('value', 'Unknown')[:MAX_OUTPUT_LENGTH]}")
+        except requests.exceptions.RequestException as e:
+            print(f"Error fetching config param {param} for {vm_id}: {e}")
+    
+
 
 def get_vm_ip(vm_id):
     # Get IP Address
@@ -159,7 +212,7 @@ def get_vm_setting(vm_id):
     except requests.exceptions.RequestException as e:
         print(f"Error fetching settings for VM {vm_id}: {e}")
 
-def display_vms(vms):
+def display_vms(vms,show_all_info = False):
     if not vms:
         print("No VMs available.")
         return
@@ -167,7 +220,9 @@ def display_vms(vms):
     for i, vm in enumerate(vms, start=1):
         vm_id = vm.get("id")
         vm_path = vm.get("path")
-        print(f"\n{i}. VM Path: {vm_path}")
+        vm_name = get_vm_name_by_ids(vm_id)
+        print(f"\n{i}. VM Name: {vm_name}")
+        print(f"   VM Path: {vm_path}")
         print(f"   VM ID: {vm_id}")
         
         power_state = get_vm_power_state(vm_id)
@@ -178,6 +233,8 @@ def display_vms(vms):
             get_vm_mac(vm_id)
             get_vm_setting(vm_id)
     
+        if show_all_info:
+            get_vm_info(vm_id)
     time.sleep(3)
         
 
@@ -201,16 +258,10 @@ def power_on_off(vm_id, action):
         response = requests.put(url, headers=headers, data=payload, auth=HTTPBasicAuth(USERNAME, PASSWORD))
         response.raise_for_status()
         power_state = response.json().get("power_state", "Unknown")
-        print(f"VM {vm_id} is now {power_state}.")
+        vm_name = get_vm_name_by_ids(vm_id)
+        print(f"VM {vm_name} {vm_id} is now {power_state}.")
     except requests.exceptions.RequestException as e:
         print(f"Error changing power state for VM {vm_id}: {e}")
-
-def show_all_vm_ids():
-    vms = get_all_vms()
-    for vm in vms:
-        print(f"VM Path: {vm.get('path')}, VM ID: {vm.get('id')}")
-    
-    time.sleep(3)
 
 def get_all_networks():
     network_url = f"{BASE_URL}/api/vmnet"
@@ -257,17 +308,29 @@ def menu():
                 print("No VMs found or error retrieving VMs.")
 
         elif choice == "2":
+            show_all_vm_ids()
+            print()
             vm_id = input("Enter VM ID: ").strip()
+            print()
             power_state = get_vm_power_state(vm_id)
-            print(f"Power state of VM {vm_id}: {power_state}")
+            vm_name = get_vm_name_by_ids(vm_id)
+            print(f"Power state of {vm_name} VM {vm_id}: {power_state}")
         
         elif choice == "3":
+            show_all_vm_ids()
+            print()
             vm_id = input("Enter VM ID to power on: ").strip()
+            print()
             power_on_off(vm_id, "on")
+            print()
         
         elif choice == "4":
+            show_all_vm_ids()
+            print()
             vm_id = input("Enter VM ID to power off: ").strip()
+            print()
             power_on_off(vm_id, "off")
+            print()
         
         elif choice == "5":
             networks = get_all_networks()
@@ -316,7 +379,7 @@ def main():
 
     if args.show_vms:
         vms = get_all_vms()
-        display_vms(vms)
+        display_vms(vms,show_all_info=True)
         sys.exit(0)
 
     if args.show_power_state:
