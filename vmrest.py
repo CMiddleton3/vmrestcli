@@ -239,13 +239,12 @@ def menu():
     while True:
         print("\nMenu:")
         print("1. Show All VMs")
-        print("2. Show All VM IDs")
-        print("3. Show Power State for VM by ID")
-        print("4. Power On VM by ID")
-        print("5. Power Off VM by ID")
-        print("6. Show All Networks")
-        print("7. Start VMware REST Server")
-        print("8. Stop VMware REST Server")
+        print("2. Show Power State for VM by ID")
+        print("3. Power On VM by ID")
+        print("4. Power Off VM by ID")
+        print("5. Show All Networks")
+        print("6. Start VMware REST Server")
+        print("7. Stop VMware REST Server")
         print("q. Quit")
 
         choice = input("Enter your choice: ").strip().lower()
@@ -256,31 +255,28 @@ def menu():
                 display_vms(vms)
             else:
                 print("No VMs found or error retrieving VMs.")
-        
-        elif choice == "2":
-            show_all_vm_ids()
 
-        elif choice == "3":
+        elif choice == "2":
             vm_id = input("Enter VM ID: ").strip()
             power_state = get_vm_power_state(vm_id)
             print(f"Power state of VM {vm_id}: {power_state}")
         
-        elif choice == "4":
+        elif choice == "3":
             vm_id = input("Enter VM ID to power on: ").strip()
             power_on_off(vm_id, "on")
         
-        elif choice == "5":
+        elif choice == "4":
             vm_id = input("Enter VM ID to power off: ").strip()
             power_on_off(vm_id, "off")
         
-        elif choice == "6":
+        elif choice == "5":
             networks = get_all_networks()
             display_networks(networks)
         
-        elif choice == "7":
+        elif choice == "6":
             start_server()
         
-        elif choice == "8":
+        elif choice == "7":
             stop_server()
         
         elif choice in ["q", "Q"]:
@@ -295,7 +291,6 @@ def main():
     
     parser.add_argument('--show-vms', action='store_true', help='Show all VMs and quit')
     parser.add_argument('--show-net', action='store_true', help='Show all networks and quit')
-    parser.add_argument('--show-vm-ids', action='store_true', help='Show all VM IDs and paths then quit')
     parser.add_argument('--show-power-state', type=str, metavar='VM_ID', help='Show the current power state of a VM (requires VM_ID)')
     parser.add_argument('--power-on', type=str, metavar='VM_ID', help='Power on the VM (requires VM_ID)')
     parser.add_argument('--power-off', type=str, metavar='VM_ID', help='Power off the VM (requires VM_ID)')
@@ -322,10 +317,6 @@ def main():
     if args.show_vms:
         vms = get_all_vms()
         display_vms(vms)
-        sys.exit(0)
-
-    if args.show_vm_ids:
-        show_all_vm_ids()
         sys.exit(0)
 
     if args.show_power_state:
