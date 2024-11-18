@@ -283,12 +283,21 @@ def power_on_off(vm_id, action):
     url = f"{BASE_URL}/api/vms/{vm_id}/power"
     headers = {'Accept': 'application/vnd.vmware.vmw.rest-v1+json','Content-Type': 'application/vnd.vmware.vmw.rest-v1+json'}
     payload = action
+    vm_name = get_vm_name_by_ids(vm_id)
+
+    if action == "on" and get_vm_power_state(vm_id) == "poweredOn":
+        print(f"VM {vm_name} {vm_id} is Already Powered On!")
+        return False
+    
+    if action == "on" and get_vm_power_state(vm_id) == "poweredOff":
+        print(f"VM {vm_name} {vm_id} is Already Powered Off!")
+        return False
 
     try:
         response = requests.put(url, headers=headers, data=payload, auth=HTTPBasicAuth(USERNAME, PASSWORD))
         response.raise_for_status()
         power_state = response.json().get("power_state", "Unknown")
-        vm_name = get_vm_name_by_ids(vm_id)
+        # vm_name = get_vm_name_by_ids(vm_id)
         print(f"VM {vm_name} {vm_id} is now {power_state}.")
     except requests.exceptions.RequestException as e:
         print(f"Error changing power state for VM {vm_id}: {e}")
