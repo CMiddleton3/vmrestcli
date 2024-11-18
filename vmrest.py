@@ -52,7 +52,32 @@ def configure_vmworkstation_ini():
     
     print("Configuration updated successfully.")
 
+def is_server_running(check_rest=False):
+    process_name = "vmrest.exe"
+   
+    try:
+        # Iterate over all running processes
+        for proc in psutil.process_iter(['pid', 'name']):
+                # Check if process name matches
+                if proc.info['name'] == process_name:
+                    return True            
+    except Exception as e:
+        print(f"Error Checking Server Process: {e}")
+    
+    if check_rest:
+        try:
+            response = requests.get(BASE_URL, timeout=5)
+            if response.status_code == 200:
+                return True
+        except requests.exceptions.ConnectionError:
+            print(f"Error Checking Server using REST: {e}")
+    
+    return False
+
 def start_server():    
+    if is_server_running():
+        print(f"Already Started VMware WorkStation REST server: {VMWARE_REST_EXE}")
+        return 0
     try:
         print(f"Starting VMware WorkStation REST server: {VMWARE_REST_EXE}")
         
@@ -86,7 +111,12 @@ def start_server():
         print(f"Error: {e}")
         sys.exit(1)
 
+
+
 def stop_server():
+    if not is_server_running():
+        print(f"Already Stopped VMware WorkStation REST server: {VMWARE_REST_EXE}")
+        
     """Stops the VMware Workstation REST server."""
     process_name = "vmrest.exe"
     
@@ -353,12 +383,15 @@ def main():
     parser = argparse.ArgumentParser(description='VMware Workstation REST Interface')
     
     parser.add_argument('--show-vms', action='store_true', help='Show all VMs and quit')
+    parser.add_argument('--show-vms-ids', action='store_true', help='Show all VMs IDS and quit')
     parser.add_argument('--show-net', action='store_true', help='Show all networks and quit')
     parser.add_argument('--show-power-state', type=str, metavar='VM_ID', help='Show the current power state of a VM (requires VM_ID)')
     parser.add_argument('--power-on', type=str, metavar='VM_ID', help='Power on the VM (requires VM_ID)')
     parser.add_argument('--power-off', type=str, metavar='VM_ID', help='Power off the VM (requires VM_ID)')
     parser.add_argument('--start-server', action='store_true', help='Start the VMware REST server')
     parser.add_argument('--stop-server', action='store_true', help='Stop the VMware REST server')
+    parser.add_argument('--go-live', action='store_true', help='Starts the VMware REST Server before running command')
+    parser.add_argument('--go-off', action='store_true', help='Stop the VMware REST server after running a command')
     parser.add_argument('--configure', action='store_true', help='Configure vmworkstation.ini file')
 
     args = parser.parse_args()
@@ -370,6 +403,7 @@ def main():
     display_title_bar()
 
     if args.start_server:
+        
         start_server()
         sys.exit(0)
     
@@ -378,21 +412,48 @@ def main():
         sys.exit(0)
 
     if args.show_vms:
+        if args.go_live and not is_server_running():
+            start_server()
         vms = get_all_vms()
         display_vms(vms,show_all_info=True)
+        if args.go_off:
+            stop_server()
+
+    if args.show_vms_ids:
+        if args.go_live and not is_server_running():
+            start_server()
+        vms = show_all_vm_ids()
+        display_vms(vms,show_all_info=True)
+        if args.go_off:
+            stop_server()
+
         sys.exit(0)
 
     if args.show_power_state:
         power_state = get_vm_power_state(args.show_power_state)
         print(f"Power state of VM {args.show_power_state}: {power_state}")
+
         sys.exit(0)
 
     if args.power_on:
+        if args.go_live and not is_server_running():
+            start_server()
+
         power_on_off(args.power_on, "on")
+        
+        if args.go_off:
+            stop_server()
         sys.exit(0)
 
     if args.power_off:
+        if args.go_live and not is_server_running():
+            start_server()
+
         power_on_off(args.power_off, "off")
+
+        if args.go_off and is_server_running():
+            stop_server()
+
         sys.exit(0)
 
     if args.show_net:
