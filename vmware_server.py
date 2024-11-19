@@ -19,6 +19,20 @@ class VMWareServer:
         self.BASE_URL = base_url
         self.state = self.STOPPED if not self.is_server_running() else self.RUNNING
 
+    def configure_vmware_server(self):
+        if not os.path.exists(self.VMWARE_REST_EXE):
+            print(f"Error: Server executable not found: {self.VMWARE_REST_EXE}.")
+            return False
+        try:
+            subprocess.run([self.VMWARE_REST_EXE,"-C"],text=True,check=False)
+        except FileNotFoundError:
+            print(f"Error: Server executable not found: {self.VMWARE_REST_EXE}.")
+            return False
+        except Exception as e:
+            print(f"Error starting server: {e}")
+            return False
+
+
     def is_server_running(self, check_rest=False) -> bool:
         """Check if the VMware Workstation REST server is running."""
         try:

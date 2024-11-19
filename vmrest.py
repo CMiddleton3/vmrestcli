@@ -36,11 +36,12 @@ def configure_vmworkstation_ini():
 
     default_base_url = "http://127.0.0.1:8697"
     base_url = (
-        input(f"Enter base URL (Default: {default_base_url}): ").strip()
+        input(f"Enter base URL (Enter for Default: {default_base_url}): ").strip()
         or default_base_url
     )
     config["vmware"]["base_url"] = base_url
 
+    print("Re enter details to save to .ini file for future use.")
     username = input("Enter username: ").strip()
     while not username:
         username = input("Username cannot be empty. Enter username: ").strip()
@@ -56,7 +57,7 @@ def configure_vmworkstation_ini():
     )
     vmrest_exe = (
         input(
-            f"Enter VMware REST Server executable path (Default: {default_vmrest_exe}): "
+            f"Enter VMware REST Server executable path (Enter for Default: {default_vmrest_exe}): "
         ).strip()
         or default_vmrest_exe
     )
@@ -295,6 +296,7 @@ def menu(vmware_server):
         print("5. Show All Networks")
         print("6. Start VMware REST Server")
         print("7. Stop VMware REST Server")
+        print("8. Configure VMare REST Server Username & Password")
         print("q. Quit")
 
         choice = input("Enter your choice: ").strip().lower()
@@ -340,6 +342,11 @@ def menu(vmware_server):
 
         elif choice == "7":
             vmware_server.stop_server()
+        
+        elif choice == "8":
+            vmware_server.configure_vmware_server()
+            configure_vmworkstation_ini()
+
 
         elif choice in ["q", "Q"]:
             print("Exiting program.")
