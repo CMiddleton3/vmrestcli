@@ -1,3 +1,5 @@
 vmworkstation.ini
 startllama.sh
 stopllama.sh
+__pycache__/
+tests/__pycache__/
