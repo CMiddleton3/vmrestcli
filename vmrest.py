@@ -1,3 +1,9 @@
+"""
+VMware REST API Module
+
+This module provides a set of functions for interacting with the VMware REST server.
+"""
+
 import configparser
 import argparse
 import sys
@@ -70,6 +76,12 @@ def configure_vmworkstation_ini():
 
 
 def get_all_vms():
+    """
+    Retrieves a list of all virtual machines available in the VMware REST server.
+    
+    Returns:
+        dict: A dictionary containing information about each virtual machine, including its ID and name.
+    """
     headers = {"Accept": "application/vnd.vmware.vmw.rest-v1+json"}
     try:
         response = requests.get(
@@ -86,6 +98,12 @@ def get_all_vms():
 
 
 def show_all_vm_ids():
+    """
+    Displays a list of unique IDs for all virtual machines available in the VMware REST server.
+    
+    Returns:
+        str: A comma-separated list of virtual machine IDs.
+    """
     vms = get_all_vms()
     print()
     for vm in vms:
@@ -95,6 +113,15 @@ def show_all_vm_ids():
 
 
 def get_vm_name_by_ids(vm_id):
+    """
+    Retrieves the name of a specific virtual machine based on its ID.
+
+    Args:
+        vm_id (str): The ID of the virtual machine to retrieve its name for.
+
+    Returns:
+        str: The name of the virtual machine associated with the specified ID.
+    """
     vms = get_all_vms()
     for vm in vms:
         if vm.get("id") == vm_id:
@@ -111,6 +138,15 @@ def get_vm_name_by_ids(vm_id):
 
 
 def get_vm_info(vm_id):
+    """
+    Retrieves information about a specific virtual machine.
+
+    Args:
+        vm_id (str): The ID of the virtual machine to retrieve information for.
+
+    Returns:
+        dict: A dictionary containing information about the virtual machine, including its name, working directory, and guest OS.
+    """
     config_param = ["guestOS", "displayName", "workingDir", "guestInfo.detailed.data"]
 
     for param in config_param:
@@ -132,7 +168,12 @@ def get_vm_info(vm_id):
 
 
 def get_vm_ip(vm_id):
-    # Get IP Address
+    """
+    Retrieves the IP address of the current guest operating system in the VMware REST server.
+
+    Returns:
+        str: The IP address of the guest operating system.
+    """
     ip_url = f"{BASE_URL}/api/vms/{vm_id}/ip"
     headers = {"Accept": "application/vnd.vmware.vmw.rest-v1+json"}
     try:
@@ -148,7 +189,12 @@ def get_vm_ip(vm_id):
 
 
 def get_vm_mac(vm_id):
-    # Get MAC Address
+    """
+    Retrieves the MAC address of the current network interface in the VMware REST server.
+
+    Returns:
+        str: The MAC address of the network interface.
+    """
     nic_url = f"{BASE_URL}/api/vms/{vm_id}/nic"
     headers = {"Accept": "application/vnd.vmware.vmw.rest-v1+json"}
     try:
@@ -166,7 +212,15 @@ def get_vm_mac(vm_id):
 
 
 def get_vm_setting(vm_id):
-    # Get Settings (CPU and Memory)
+    """
+    Retrieves a specific setting for a virtual machine based on its ID and parameter name.
+
+    Args:
+        param (str): The name of the setting to retrieve.
+
+    Returns:
+        str: The value of the specified setting.
+    """
     settings_url = f"{BASE_URL}/api/vms/{vm_id}"
     headers = {"Accept": "application/vnd.vmware.vmw.rest-v1+json"}
     try:
@@ -211,6 +265,12 @@ def display_vms(vms, show_all_info=False):
 
 
 def get_vm_power_state(vm_id):
+    """
+    Retrieves the power state of the current guest operating system in the VMware REST server.
+
+    Returns:
+        str: The power state of the guest operating system ("on" or "off").
+    """
     try:
         power_url = f"{BASE_URL}/api/vms/{vm_id}/power"
         headers = {
@@ -229,6 +289,16 @@ def get_vm_power_state(vm_id):
 
 
 def power_on_off(vm_id, action):
+    """
+    Powers on or off a virtual machine based on the specified action.
+
+    Args:
+        vm_id (str): The ID of the virtual machine to power.
+        action (str): The action to perform ("on" or "off").
+
+    Returns:
+        bool: True if the action was successful, False otherwise.
+    """
     url = f"{BASE_URL}/api/vms/{vm_id}/power"
     headers = {
         "Accept": "application/vnd.vmware.vmw.rest-v1+json",
@@ -259,6 +329,12 @@ def power_on_off(vm_id, action):
 
 
 def get_all_networks():
+    """
+    Retrieves a list of all network interfaces available in the VMware REST server.
+
+    Returns:
+        dict: A dictionary containing information about each network interface, including its ID and name.
+    """
     network_url = f"{BASE_URL}/api/vmnet"
     headers = {"Accept": "application/vnd.vmware.vmw.rest-v1+json"}
     try:
@@ -342,7 +418,7 @@ def menu(vmware_server):
 
         elif choice == "7":
             vmware_server.stop_server()
-        
+            
         elif choice == "8":
             vmware_server.configure_vmware_server()
             configure_vmworkstation_ini()
