@@ -20,6 +20,15 @@ class VMWareServer:
         self.state = self.STOPPED if not self.is_server_running() else self.RUNNING
 
     def configure_vmware_server(self):
+        """
+        Configure the VMware Workstation REST server.
+
+        This method checks if the server executable exists in the specified location. If it does, the server is started with the -C option.
+        If the executable does not exist or an error occurs during startup, an error message is printed and False is returned.
+
+        Returns:
+            bool: True if the server was successfully configured, False otherwise.
+        """
         if not os.path.exists(self.VMWARE_REST_EXE):
             print(f"Error: Server executable not found: {self.VMWARE_REST_EXE}.")
             return False
@@ -34,7 +43,14 @@ class VMWareServer:
 
 
     def is_server_running(self, check_rest=False) -> bool:
-        """Check if the VMware Workstation REST server is running."""
+        """
+        Check if the VMware Workstation REST server is running.
+
+        This method checks the current state of the server and returns True if it's running, False otherwise.
+
+        Returns:
+            bool: True if the server is running, False otherwise.
+        """
         try:
             # Check if the process is running
             logging.info("Checking VMware Workstation REST server Power State.")
@@ -60,7 +76,15 @@ class VMWareServer:
         return False
 
     def start_server(self) -> bool:
-        """Start the VMware Workstation REST server."""
+        """
+        Starts the VMware Workstation REST server.
+
+        This method checks if the server executable exists in the specified location. If it does, the server is started with the -C option.
+        If the executable does not exist or an error occurs during startup, an error message is printed and False is returned.
+
+        Returns:
+        bool: True if the server was successfully started, False otherwise.
+        """
         if self.state == self.RUNNING:
             print(f"VMware Workstation REST server is already running.")
             return True
@@ -95,7 +119,15 @@ class VMWareServer:
             return False
 
     def stop_server(self) -> bool:
-        """Stop the VMware Workstation REST server."""
+        """
+        Stop the VMware Workstation REST server.
+
+        This method checks if the server is already stopped, and returns True if it is.
+        If the server is not stopped, an error message is printed indicating that the server is not running.
+
+        Returns:
+            bool: True if the server was successfully stopped, False otherwise.
+        """
         if self.state == self.STOPPED:
             print(f"VMware Workstation REST server is not running.")
             return True
