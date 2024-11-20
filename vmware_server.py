@@ -1,3 +1,9 @@
+"""
+Manages the lifecycle of the VMware Workstation REST server.
+
+Provides methods to start, stop, check if running and configure the server.
+
+"""
 import subprocess
 import logging
 import sys
@@ -10,6 +16,22 @@ logging.basicConfig(level=logging.INFO)
 
 
 class VMWareServer:
+    """
+    Manages the lifecycle of the VMware Workstation REST server.
+
+    Provides methods to start, stop, check if running and configure the server.
+
+    Attributes:
+    state (str): Current state of the server (e.g., STARTING, RUNNING, STOPPED)
+    VMWARE_REST_EXE (str): Path to the VMware Workstation REST executable
+    is_server_running (method): Checks if the server is currently running
+
+    Methods:
+    start_server(): Starts the VMware Workstation REST server.
+    stop_server(): Stops the VMware Workstation REST server.
+    is_server_running(): Checks if the VMware Workstation REST server is running.
+    configure_vmware_server(): Configures the VMware Workstation REST server (not implemented in this example).
+    """
     RUNNING = "running"
     STOPPED = "stopped"
 
@@ -37,7 +59,7 @@ class VMWareServer:
         except FileNotFoundError:
             print(f"Error: Server executable not found: {self.VMWARE_REST_EXE}.")
             return False
-        except Exception as e:
+        except subprocess.SubprocessError as e:
             print(f"Error starting server: {e}")
             return False
 
@@ -50,17 +72,13 @@ class VMWareServer:
 
         Returns:
             bool: True if the server is running, False otherwise.
-        """
-        try:
-            # Check if the process is running
-            logging.info("Checking VMware Workstation REST server Power State.")
-            for proc in psutil.process_iter(["name"]):
-                if proc.info["name"] == self.VMWARE_REST_PROCESS:
-                    self.state = self.RUNNING
-                    return True
-        except Exception as e:
-            print(f"Error checking server process: {e}")
-
+        """      
+        # Check if the process is running
+        logging.info("Checking VMware Workstation REST server Power State.")
+        for proc in psutil.process_iter(["name"]):
+            if proc.info["name"] == self.VMWARE_REST_PROCESS:
+                self.state = self.RUNNING
+                return True
         # Optionally check if the REST API is reachable
         if check_rest:
             try:
@@ -86,7 +104,7 @@ class VMWareServer:
         bool: True if the server was successfully started, False otherwise.
         """
         if self.state == self.RUNNING:
-            print(f"VMware Workstation REST server is already running.")
+            print("VMware Workstation REST server is already running.")
             return True
 
         if not os.path.exists(self.VMWARE_REST_EXE):
@@ -114,7 +132,7 @@ class VMWareServer:
         except FileNotFoundError:
             print(f"Error: Server executable not found: {self.VMWARE_REST_EXE}.")
             sys.exit(1)
-        except Exception as e:
+        except subprocess.SubprocessError as e:
             print(f"Error starting server: {e}")
             return False
 
@@ -129,27 +147,23 @@ class VMWareServer:
             bool: True if the server was successfully stopped, False otherwise.
         """
         if self.state == self.STOPPED:
-            print(f"VMware Workstation REST server is not running.")
+            print("VMware Workstation REST server is not running.")
             return True
 
-        try:
-            logging.info("Stopping VMware Workstation REST server.")
-            for proc in psutil.process_iter(["pid", "name"]):
-                if proc.info["name"] == self.VMWARE_REST_PROCESS:
-                    print(
-                        f"Terminating process {proc.info['name']} (PID {proc.info['pid']})..."
-                    )
-                    proc.terminate()
-                    proc.wait()  # Wait for process to terminate
-                    time.sleep(3)  # Allow time for the termination
+        logging.info("Stopping VMware Workstation REST server.")
+        for proc in psutil.process_iter(["pid", "name"]):
+            if proc.info["name"] == self.VMWARE_REST_PROCESS:
+                print(
+                    f"Terminating process {proc.info['name']} (PID {proc.info['pid']})..."
+                )
+                proc.terminate()
+                proc.wait()  # Wait for process to terminate
+                time.sleep(3)  # Allow time for the termination
 
-                    if not self.is_server_running():
-                        print("VMware Workstation REST server stopped successfully.")
-                        self.state = self.STOPPED
-                        return True
-            print(f"No running process found for {self.VMWARE_REST_PROCESS}.")
-        except Exception as e:
-            print(f"Error stopping server: {e}")
-            return False
-        self.state == self.STOPPED
+                if not self.is_server_running():
+                    print("VMware Workstation REST server stopped successfully.")
+                    self.state = self.STOPPED
+                    return True
+        print(f"No running process found for {self.VMWARE_REST_PROCESS}.")
         return False
+    
