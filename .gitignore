@@ -3,3 +3,5 @@ startllama.sh
 stopllama.sh
 __pycache__/
 tests/__pycache__/
+.aider*
+.env
