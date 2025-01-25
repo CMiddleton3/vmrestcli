@@ -1,0 +1,56 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+
+        {
+            "name": "Python Attach: DebugPY",
+            "type": "debugpy",
+            "request": "attach",
+            "pathMappings": [
+                {
+                    "localRoot": "${workspaceFolder}",
+                    "remoteRoot": "."
+                }
+            ],
+            "connect": {
+                "host": "127.0.0.1",
+                "port": 5678 // Ensure this port is not used by other services
+            }
+        },
+        {
+            "name": "Show All VMs Args",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}${pathSeparator}vmrest.py",
+            "console": "integratedTerminal",
+            "args": ["--show-vms"]
+        },
+        {
+            "name": "Start Server Args",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}${pathSeparator}vmrest.py",
+            "console": "integratedTerminal",
+            "args": ["--start-server"]
+        },
+        {
+            "name": "Stop Server Args",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}${pathSeparator}vmrest.py",
+            "console": "integratedTerminal",
+            "args": ["--stop-server"]
+        },
+        {
+            "name": "Python Debugger: VMRest",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}${pathSeparator}vmrest.py",
+            "console": "integratedTerminal"
+        },
+
+    ]
+}

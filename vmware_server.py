@@ -8,6 +8,7 @@ import subprocess
 import logging
 import sys
 import os
+import platform
 import time
 import psutil
 import requests
@@ -113,12 +114,22 @@ class VMWareServer:
 
         try:
             logging.info("Starting VMware Workstation REST server.")
-            subprocess.Popen(
-                [self.VMWARE_REST_EXE],
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-                preexec_fn=os.setpgrp,
-            )
+            
+            if platform.system() == "Windows":
+                # Start the server in a new process group to allow for termination
+                self.process = subprocess.Popen(
+                    [self.VMWARE_REST_EXE],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    creationflags=subprocess.CREATE_NEW_PROCESS_GROUP,
+                )
+            else:
+                subprocess.Popen(
+                    [self.VMWARE_REST_EXE],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    preexec_fn=os.setpgrp,
+                )
             time.sleep(3)  # Allow the server time to start
 
             if self.is_server_running(check_rest=True):

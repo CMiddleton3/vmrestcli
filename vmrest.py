@@ -8,71 +8,67 @@ import configparser
 import argparse
 import sys
 import time
+import platform
+import debugpy
 from pathlib import Path
 import requests
 from requests.auth import HTTPBasicAuth
 
 from vmware_server import VMWareServer
 
+# debugpy.breakpoint()
+
+# Constants for default values
+DEFAULT_BASE_URL = "http://127.0.0.1:8697"
+
+if platform.system() == "Windows":
+    DEFAULT_VMREST_EXE = r"C:\Program Files (x86)\VMware\VMware Workstation\vmrest.exe"
+else:
+    DEFAULT_VMREST_EXE = r"/mnt/c/Program Files (x86)/VMware/VMware Workstation/vmrest.exe"
+
 # Load settings from vmworkstation.ini
 config = configparser.ConfigParser()
 config.read("vmworkstation.ini")
 
 # Set defaults if not provided in the ini file.
-BASE_URL = config.get("vmware", "base_url", fallback="http://127.0.0.1:8697")
+BASE_URL = config.get("vmware", "base_url", fallback=DEFAULT_BASE_URL)
 USERNAME = config.get("vmware", "username", fallback="")
 PASSWORD = config.get("vmware", "password", fallback="")
-VMWARE_REST_EXE = config.get(
-    "vmware",
-    "vmrest_exe",
-    fallback=r"/mnt/c/Program Files (x86)/VMware/VMware Workstation/vmrest.exe",
-)
+VMWARE_REST_EXE = config.get("vmware", "vmrest_exe", fallback=DEFAULT_VMREST_EXE)
 
 
-def display_title_bar():
+def display_title_bar() -> None:
+    """
+    Display the title bar for the VMware WorkStation Rest application.
+    """
     title = "VMware WorkStation Rest"
     print("=" * len(title))
     print(title)
     print("=" * len(title))
 
 
-def configure_vmworkstation_ini():
+def configure_vmworkstation_ini() -> None:
+    """
+    Configure the vmworkstation.ini file with user input.
+    """
     print("Configure vmworkstation.ini file:")
     config["vmware"] = {}
 
-    default_base_url = "http://127.0.0.1:8697"
-    base_url = (
-        input(f"Enter base URL (Enter for Default: {default_base_url}): ").strip()
-        or default_base_url
-    )
+    base_url = input(f"Enter base URL (Enter for Default: {DEFAULT_BASE_URL}): ").strip() or DEFAULT_BASE_URL
     config["vmware"]["base_url"] = base_url
 
-    print("Re enter details to save to .ini file for future use.")
     username = input("Enter username: ").strip()
-    while not username:
-        username = input("Username cannot be empty. Enter username: ").strip()
     config["vmware"]["username"] = username
 
     password = input("Enter password: ").strip()
-    while not password:
-        password = input("Password cannot be empty. Enter password: ").strip()
     config["vmware"]["password"] = password
 
-    default_vmrest_exe = (
-        r"/mnt/c/Program Files (x86)/VMware/VMware Workstation/vmrest.exe"
-    )
-    vmrest_exe = (
-        input(
-            f"Enter VMware REST Server executable path (Enter for Default: {default_vmrest_exe}): "
-        ).strip()
-        or default_vmrest_exe
-    )
+    vmrest_exe = input(f"Enter path to vmrest.exe (Enter for Default: {DEFAULT_VMREST_EXE}): ").strip() or DEFAULT_VMREST_EXE
     config["vmware"]["vmrest_exe"] = vmrest_exe
 
-    with open("vmworkstation.ini", "w",encoding='utf-8') as configfile:
+    with open("vmworkstation.ini", "w") as configfile:
         config.write(configfile)
-
-    print("Configuration updated successfully.")
+        print("Configuration saved to vmworkstation.ini")
 
 
 def get_all_vms():
@@ -239,6 +235,15 @@ def get_vm_setting(vm_id):
 
 
 def display_vms(vms, show_all_info=False):
+    """
+    Retrieves and displays information about a list of virtual machines. Information displayed includes the machine's name, path, ID, power state, IP address (if applicable), MAC addresses for each network interface (if applicable), processors, memory usage, CPU cores, guest OS type, display name, working directory, current snapshot status, and any additional custom settings available in VMware.
+    If all_info is True it will also retrieve information about the virtual machine's hardware configuration such as host bus adapter count and model (if applicable), network adapters connected to each interface for both Ethernet/LAN & Fibre Channel, connection status of various devices like CD-ROM drive(s)
+    Args:
+        vms (list): A list containing information about available virtual machines. Each entry is a dictionary with keys including 'id', 'path', and other VM-related info.
+        show_all_info (bool): If True, displays more detailed hardware configuration of each VM in addition to the standard vm details displayed by default. Defaults to False.
+    Returns:
+        None
+    """
     if not vms:
         print("No VMs available.")
         return
@@ -502,6 +507,7 @@ def main():
         display_vms(vms, show_all_info=True)
         if args.go_off:
             vmware_server.stop_server()
+        sys.exit(0)
 
     if args.show_vms_ids:
         if args.go_live:
@@ -510,7 +516,6 @@ def main():
         display_vms(vms, show_all_info=True)
         if args.go_off:
             vmware_server.stop_server()
-
         sys.exit(0)
 
     if args.show_power_state:
